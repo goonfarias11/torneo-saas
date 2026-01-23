@@ -1,0 +1,256 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTH MODELS (NextAuth)
+// ============================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  organizationUsers OrganizationUser[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// MULTI-TENANT MODELS
+// ============================================
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  EDITOR
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PREMIUM
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  plan        PlanType @default(FREE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       OrganizationUser[]
+  tournaments Tournament[]
+  teams       Team[]
+
+  @@index([slug])
+}
+
+model OrganizationUser {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrganizationRole @default(EDITOR)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// ============================================
+// TOURNAMENT MODELS
+// ============================================
+
+enum TournamentStatus {
+  DRAFT
+  UPCOMING
+  ACTIVE
+  FINISHED
+}
+
+enum TournamentType {
+  LEAGUE      // Round-robin (liga)
+  KNOCKOUT    // Eliminación directa (futuro)
+  GROUP_STAGE // Fase de grupos (futuro)
+}
+
+model Tournament {
+  id             String           @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  type           TournamentType   @default(LEAGUE)
+  status         TournamentStatus @default(DRAFT)
+  startDate      DateTime?
+  endDate        DateTime?
+  
+  // Scoring rules
+  pointsForWin   Int              @default(3)
+  pointsForDraw  Int              @default(1)
+  pointsForLoss  Int              @default(0)
+  
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants   TournamentTeam[]
+  matches        Match[]
+  rounds         Round[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// ============================================
+// TEAM MODELS
+// ============================================
+
+model Team {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  shortName      String?
+  logo           String?
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tournaments  TournamentTeam[]
+  homeMatches  Match[]          @relation("HomeTeam")
+  awayMatches  Match[]          @relation("AwayTeam")
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model TournamentTeam {
+  id           String   @id @default(cuid())
+  tournamentId String
+  teamId       String
+  position     Int?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([tournamentId])
+  @@index([teamId])
+}
+
+// ============================================
+// MATCH MODELS
+// ============================================
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+model Round {
+  id           String   @id @default(cuid())
+  tournamentId String
+  number       Int
+  name         String?
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches    Match[]
+
+  @@unique([tournamentId, number])
+  @@index([tournamentId])
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String
+  roundId      String?
+  homeTeamId   String
+  awayTeamId   String
+  
+  scheduledAt  DateTime?
+  playedAt     DateTime?
+  
+  homeScore    Int?
+  awayScore    Int?
+  
+  status       MatchStatus @default(SCHEDULED)
+  
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round      Round?     @relation(fields: [roundId], references: [id], onDelete: SetNull)
+  homeTeam   Team       @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam   Team       @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([roundId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([status])
+}
