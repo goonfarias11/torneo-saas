@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 
-export default auth((req) => {
+export default auth((req: NextRequest) => {
   const { nextUrl } = req
-  const isLoggedIn = !!req.auth
+  const isLoggedIn = !!(req as any).auth
 
   const isAuthRoute = nextUrl.pathname.startsWith('/auth')
   const isPublicRoute = nextUrl.pathname === '/' || isAuthRoute
