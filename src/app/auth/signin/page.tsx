@@ -21,11 +21,16 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md bg-card/50 border-border/50">
         <CardHeader>
-          <CardTitle>Iniciar Sesión</CardTitle>
-          <CardDescription>
+          <div className="text-center mb-4">
+            <h1 className="text-3xl font-black tracking-tight">
+              TORNEO<span className="text-accent">.</span>
+            </h1>
+          </div>
+          <CardTitle className="text-2xl font-black">Iniciar Sesión</CardTitle>
+          <CardDescription className="font-medium">
             Ingresa tu email para acceder (MVP simplificado)
           </CardDescription>
         </CardHeader>
@@ -33,7 +38,7 @@ export default function SignInPage() {
           <form action={handleSignIn}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="font-semibold">Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -42,7 +47,7 @@ export default function SignInPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full font-bold shadow-lg shadow-accent/20">
                 Ingresar
               </Button>
             </div>

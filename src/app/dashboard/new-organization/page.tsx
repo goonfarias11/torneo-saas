@@ -21,41 +21,41 @@ export default function NewOrganizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/40 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-5">
+          <Link href="/dashboard" className="text-accent hover:underline font-bold">
             ← Volver al Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="mb-6 bg-yellow-50 border-yellow-200">
+      <main className="container mx-auto px-6 py-12 max-w-2xl">
+        <Card className="mb-6 bg-accent/10 border-accent/30">
           <CardHeader>
-            <CardTitle className="text-yellow-800">⚠️ Base de Datos Requerida</CardTitle>
-            <CardDescription className="text-yellow-700">
+            <CardTitle className="text-accent text-xl font-black">⚠️ Base de Datos Requerida</CardTitle>
+            <CardDescription className="text-foreground/80 font-medium">
               Esta funcionalidad requiere una base de datos PostgreSQL configurada.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-yellow-800">
-            <p className="mb-3"><strong>Opciones rápidas y gratuitas:</strong></p>
+          <CardContent className="text-sm text-foreground/70">
+            <p className="mb-3 font-semibold"><strong className="text-accent">Opciones rápidas y gratuitas:</strong></p>
             <ol className="list-decimal list-inside space-y-2 mb-4">
               <li>
-                Ve a <a href="https://neon.tech" target="_blank" rel="noopener noreferrer" className="underline font-medium">Neon.tech</a> o <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">Supabase.com</a>
+                Ve a <a href="https://neon.tech" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-accent hover:text-accent/80">Neon.tech</a> o <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-accent hover:text-accent/80">Supabase.com</a>
               </li>
               <li>Crea una cuenta gratuita y un nuevo proyecto</li>
               <li>Copia el connection string de PostgreSQL</li>
-              <li>Pégalo en el archivo <code className="bg-yellow-100 px-1 rounded">.env</code> en la variable <code className="bg-yellow-100 px-1 rounded">DATABASE_URL</code></li>
-              <li>Ejecuta en la terminal: <code className="bg-yellow-100 px-2 py-1 rounded block mt-1">npm run db:push && npm run db:seed</code></li>
+              <li>Pégalo en el archivo <code className="bg-accent/20 px-1 rounded text-accent">.env</code> en la variable <code className="bg-accent/20 px-1 rounded text-accent">DATABASE_URL</code></li>
+              <li>Ejecuta en la terminal: <code className="bg-accent/20 px-2 py-1 rounded block mt-1 text-accent font-mono">npm run db:push && npm run db:seed</code></li>
             </ol>
-            <p className="text-xs">Una vez configurado, recarga esta página y podrás crear organizaciones.</p>
+            <p className="text-xs text-muted-foreground">Una vez configurado, recarga esta página y podrás crear organizaciones.</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card/50 border-border/50">
           <CardHeader>
-            <CardTitle>Nueva Organización</CardTitle>
+            <CardTitle className="text-2xl font-black">Nueva Organización</CardTitle>
             <CardDescription>
               Crea una organización para gestionar torneos y equipos
             </CardDescription>
