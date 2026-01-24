@@ -13,7 +13,13 @@ export default async function DashboardPage() {
     redirect("/auth/signin")
   }
 
-  const organizations = await getUserOrganizations()
+  let organizations: Awaited<ReturnType<typeof getUserOrganizations>> = []
+  try {
+    organizations = await getUserOrganizations()
+  } catch (error) {
+    console.error('Error getting organizations:', error)
+    organizations = []
+  }
 
   return (
     <div className="min-h-screen bg-background">
