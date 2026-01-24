@@ -14,10 +14,13 @@ export default async function DashboardPage() {
   }
 
   let organizations: Awaited<ReturnType<typeof getUserOrganizations>> = []
+  let hasDBError = false
+  
   try {
     organizations = await getUserOrganizations()
   } catch (error) {
     console.error('Error getting organizations:', error)
+    hasDBError = true
     organizations = []
   }
 
@@ -55,17 +58,34 @@ export default async function DashboardPage() {
         {organizations.length === 0 ? (
           <Card className="bg-card/50 border-accent/30">
             <CardHeader>
-              <CardTitle className="text-2xl font-black">No tienes organizaciones</CardTitle>
+              <CardTitle className="text-2xl font-black">
+                {hasDBError ? '⚠️ Base de Datos No Configurada' : 'No tienes organizaciones'}
+              </CardTitle>
               <CardDescription className="text-base">
-                Para usar la aplicación completamente, necesitas configurar la base de datos PostgreSQL.
+                {hasDBError ? (
+                  <>
+                    La aplicación no puede conectarse a la base de datos.
+                    <br /><br />
+                    <strong className="text-accent">Para configurar la base de datos:</strong>
+                  </>
+                ) : (
+                  'Para usar la aplicación completamente, necesitas configurar la base de datos PostgreSQL.'
+                )}
                 <br /><br />
-                <strong className="text-accent">Opciones rápidas:</strong>
+                <strong className="text-accent">Opciones rápidas y gratuitas:</strong>
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>Neon.tech (gratis): <a href="https://neon.tech" target="_blank" className="text-accent hover:underline font-semibold">https://neon.tech</a></li>
                   <li>Supabase (gratis): <a href="https://supabase.com" target="_blank" className="text-accent hover:underline font-semibold">https://supabase.com</a></li>
                 </ul>
                 <br />
-                Luego configura DATABASE_URL en el archivo .env y ejecuta: npm run db:push
+                <strong className="text-accent">Pasos:</strong>
+                <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                  <li>Crea una cuenta y un nuevo proyecto</li>
+                  <li>Copia la CONNECTION STRING (empieza con postgresql://)</li>
+                  <li>En Vercel, ve a Settings → Environment Variables</li>
+                  <li>Agrega DATABASE_URL con el connection string</li>
+                  <li>Redeploy el proyecto</li>
+                </ol>
               </CardDescription>
             </CardHeader>
             <CardContent>
