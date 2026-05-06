@@ -316,3 +316,18 @@ MIT License - Ver archivo LICENSE para más detalles
 ---
 
 **Desarrollado con** Next.js 14, TypeScript, Tailwind CSS y Prisma
+
+## ⚡ Inicio rápido automático
+
+```bash
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+Esto:
+- levanta PostgreSQL con Docker
+- instala dependencias
+- configura Prisma
+- carga datos demo
+- inicia el proyecto
+
