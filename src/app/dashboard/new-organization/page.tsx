@@ -1,95 +1,68 @@
-import { redirect } from "next/navigation"
 import { createOrganization } from "@/actions/organization"
+import { auth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
-export default function NewOrganizationPage() {
-  async function handleCreateOrganization(formData: FormData) {
-    "use server"
-    try {
-      const result = await createOrganization(formData)
-      if (result.success) {
-        redirect("/dashboard")
-      }
-    } catch (error: any) {
-      // El error será mostrado en la UI
-      console.error("Error creating organization:", error)
+export default async function NewOrganizationPage() {
+  const session = await auth()
+  if (!session?.user) redirect('/auth/signin')
+
+  async function handleCreate(formData: FormData) {
+    'use server'
+    const result = await createOrganization(formData)
+    if (result.success) {
+      redirect(`/org/${result.organizationSlug}`)
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border/40 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-5">
-          <Link href="/dashboard" className="text-accent hover:underline font-bold">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b">
+        <div className="container mx-auto px-4 py-4">
+          <Link href="/dashboard" className="text-sm text-blue-600 hover:underline mb-2 block">
             ← Volver al Dashboard
           </Link>
+          <h1 className="text-3xl font-bold">Nueva Organización</h1>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-12 max-w-2xl">
-        <Card className="mb-6 bg-accent/10 border-accent/30">
+      <main className="container mx-auto px-4 py-8 max-w-lg">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-accent text-xl font-black">⚠️ Base de Datos Requerida</CardTitle>
-            <CardDescription className="text-foreground/80 font-medium">
-              Esta funcionalidad requiere una base de datos PostgreSQL configurada.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-foreground/70">
-            <p className="mb-3 font-semibold"><strong className="text-accent">Opciones rápidas y gratuitas:</strong></p>
-            <ol className="list-decimal list-inside space-y-2 mb-4">
-              <li>
-                Ve a <a href="https://neon.tech" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-accent hover:text-accent/80">Neon.tech</a> o <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-accent hover:text-accent/80">Supabase.com</a>
-              </li>
-              <li>Crea una cuenta gratuita y un nuevo proyecto</li>
-              <li>Copia el connection string de PostgreSQL</li>
-              <li>Pégalo en el archivo <code className="bg-accent/20 px-1 rounded text-accent">.env</code> en la variable <code className="bg-accent/20 px-1 rounded text-accent">DATABASE_URL</code></li>
-              <li>Ejecuta en la terminal: <code className="bg-accent/20 px-2 py-1 rounded block mt-1 text-accent font-mono">npm run db:push && npm run db:seed</code></li>
-            </ol>
-            <p className="text-xs text-muted-foreground">Una vez configurado, recarga esta página y podrás crear organizaciones.</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader>
-            <CardTitle className="text-2xl font-black">Nueva Organización</CardTitle>
+            <CardTitle>Crear organización</CardTitle>
             <CardDescription>
-              Crea una organización para gestionar torneos y equipos
+              Una organización agrupa tus torneos y equipos. Podés tener una por liga, club o competencia.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={handleCreateOrganization} className="space-y-4">
+            <form action={handleCreate} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="name">Nombre de la organización</Label>
+                <Label htmlFor="name">Nombre *</Label>
                 <Input
                   id="name"
                   name="name"
-                  placeholder="Ej: Liga Municipal de Fútbol"
+                  placeholder="Ej: Liga de Fútbol Barrial"
                   required
                   minLength={3}
-                  disabled
+                  autoFocus
                 />
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="description">Descripción (opcional)</Label>
                 <Input
                   id="description"
                   name="description"
-                  placeholder="Describe tu organización..."
-                  disabled
+                  placeholder="Descripción breve"
                 />
               </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1" disabled>
-                  Crear Organización (DB requerida)
-                </Button>
-                <Button type="button" variant="outline" asChild>
-                  <Link href="/dashboard">Volver</Link>
+              <div className="flex gap-3 pt-2">
+                <Button type="submit" className="flex-1">Crear Organización</Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard">Cancelar</Link>
                 </Button>
               </div>
             </form>

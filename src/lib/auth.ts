@@ -1,45 +1,31 @@
 import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import prisma from "@/lib/prisma"
 import Credentials from "next-auth/providers/credentials"
+import prisma from "@/lib/prisma"
 
-// Para simplificar el MVP, usamos autenticación simple
-// En producción, usar Google/GitHub OAuth
+/**
+ * NextAuth solo maneja la sesión JWT.
+ * La lógica de login/registro/bcrypt vive en src/actions/auth.ts,
+ * donde podemos devolver errores tipados sin depender de NextAuth.
+ */
 const authConfig = {
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email:    { label: "Email",      type: "email"    },
+        password: { label: "Contraseña", type: "password" },
       },
-      async authorize(credentials: any) {
-        // TODO: Implementar validación real con bcrypt
-        // Por ahora, para MVP, cualquier email sirve
-        if (!credentials?.email) return null
-        
+      async authorize(credentials) {
+        // En este punto la contraseña ya fue verificada en la action.
+        // Solo buscamos el usuario para devolver sus datos a la sesión.
+        const email = (credentials?.email as string | undefined)?.toLowerCase().trim()
+        if (!email) return null
+
         try {
-          let user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
-          })
-
-          if (!user) {
-            // Auto-crear usuario para MVP
-            user = await prisma.user.create({
-              data: {
-                email: credentials.email as string,
-                name: (credentials.email as string).split('@')[0],
-              },
-            })
-          }
-
-          return user
-        } catch (error) {
-          // Si no hay DB, crear usuario temporal
-          return {
-            id: "demo-user-id",
-            email: credentials.email as string,
-            name: (credentials.email as string).split('@')[0],
-          }
+          const user = await prisma.user.findUnique({ where: { email } })
+          if (!user) return null
+          return { id: user.id, email: user.email, name: user.name }
+        } catch {
+          return null
         }
       },
     }),
@@ -55,9 +41,7 @@ const authConfig = {
       return session
     },
     async jwt({ token, user }: any) {
-      if (user) {
-        token.sub = user.id
-      }
+      if (user) token.sub = user.id
       return token
     },
   },

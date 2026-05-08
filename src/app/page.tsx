@@ -33,19 +33,18 @@ export default function HomePage() {
             <div className="max-w-5xl">
               <div className="inline-block mb-6">
                 <span className="px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent font-bold text-sm tracking-wide uppercase">
-                  Plataforma de Competición
+                  Gestión de Torneos
                 </span>
               </div>
               
               <h2 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8">
-                DOMINA TUS
+                ORGANIZA TUS
                 <br />
                 <span className="text-accent">TORNEOS</span>
               </h2>
               
               <p className="text-xl md:text-2xl text-foreground/80 font-medium max-w-2xl mb-12 leading-relaxed">
-                La plataforma definitiva para organizar competiciones deportivas. 
-                Crea, gestiona y escala torneos profesionales con herramientas diseñadas para campeones.
+                Creá torneos, equipos, fixtures y tablas de posiciones desde una sola aplicación simple y rápida.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-5">
@@ -87,9 +86,9 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold mb-2 tracking-tight">Multi-Organización</h3>
+              <h3 className="text-xl font-bold mb-2 tracking-tight">Torneos rápidos</h3>
               <p className="text-foreground/60 font-medium">
-                Gestiona múltiples ligas y competiciones desde una sola plataforma.
+                Creación simple de torneos sin configuraciones complejas.
               </p>
             </Card>
 
