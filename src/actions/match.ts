@@ -3,7 +3,6 @@
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { MatchStatus } from '@prisma/client'
 
 /**
  * Genera fixtures para un torneo tipo LEAGUE (round-robin)
@@ -27,7 +26,9 @@ export async function generateFixtures(tournamentId: string) {
   })
 
   if (!tournament) throw new Error('Torneo no encontrado')
-  if (tournament.type !== 'LEAGUE') throw new Error('Solo se pueden generar fixtures para torneos tipo Liga')
+  if (!['league', 'round-robin', 'home-away'].includes(tournament.formatSlug)) {
+    throw new Error('Este formato requiere un generador de fixture específico')
+  }
 
   const teams = tournament.participants.map((p) => p.team)
   if (teams.length < 2) throw new Error('Se necesitan al menos 2 equipos para generar fixtures')
@@ -43,7 +44,8 @@ export async function generateFixtures(tournamentId: string) {
   if (hasBye) teamsForSchedule.push({ id: 'BYE', name: 'BYE' } as any)
 
   const n = teamsForSchedule.length
-  const numRounds = n - 1
+  const legs = tournament.formatSlug === 'home-away' ? 2 : 1
+  const numRounds = (n - 1) * legs
   const matchesPerRound = n / 2
 
   // Crear todas las rondas primero
@@ -66,6 +68,8 @@ export async function generateFixtures(tournamentId: string) {
 
   for (let r = 0; r < numRounds; r++) {
     const round = rounds[r]
+    const leg = Math.floor(r / (n - 1))
+    const rotationRound = r % (n - 1)
     const roundTeams = [fixed, ...rotating]
 
     const matchesToCreate: { homeTeamId: string; awayTeamId: string }[] = []
@@ -78,7 +82,8 @@ export async function generateFixtures(tournamentId: string) {
       if (home.id === 'BYE' || away.id === 'BYE') continue
 
       // Alternar local/visitante para distribución equitativa
-      if (r % 2 === 0) {
+      const shouldSwapHome = (rotationRound + leg) % 2 !== 0
+      if (!shouldSwapHome) {
         matchesToCreate.push({ homeTeamId: home.id, awayTeamId: away.id })
       } else {
         matchesToCreate.push({ homeTeamId: away.id, awayTeamId: home.id })
@@ -93,14 +98,18 @@ export async function generateFixtures(tournamentId: string) {
           roundId: round.id,
           homeTeamId: m.homeTeamId,
           awayTeamId: m.awayTeamId,
-          status: MatchStatus.SCHEDULED,
+          status: 'SCHEDULED',
         },
       })
       totalMatches++
     }
 
     // Rotar equipos (excepto el fijo en posición 0)
-    rotating.unshift(rotating.pop()!)
+    if (rotationRound === n - 2) {
+      rotating.splice(0, rotating.length, ...teamsForSchedule.slice(1))
+    } else {
+      rotating.unshift(rotating.pop()!)
+    }
   }
 
   revalidatePath(`/tournament/${tournamentId}`)
@@ -128,7 +137,7 @@ export async function updateMatchResult(
     data: {
       homeScore,
       awayScore,
-      status: MatchStatus.FINISHED,
+      status: 'FINISHED',
       playedAt: new Date(),
     },
   })
@@ -151,7 +160,7 @@ export async function resetMatchResult(matchId: string) {
     data: {
       homeScore: null,
       awayScore: null,
-      status: MatchStatus.SCHEDULED,
+      status: 'SCHEDULED',
       playedAt: null,
     },
   })

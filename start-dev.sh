@@ -1,8 +1,11 @@
 #!/bin/bash
 
-cp .env.example .env 2>/dev/null || true
+cat > .env <<'EOF'
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="dev-secret-change-me"
+NEXTAUTH_URL="http://localhost:3000"
+EOF
 
-docker compose up -d
 npm install
 npx prisma generate
 npx prisma db push

@@ -4,7 +4,6 @@ import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { generateSlug } from '@/lib/utils'
 import { revalidatePath } from 'next/cache'
-import { OrganizationRole } from '@prisma/client'
 
 export async function createOrganization(formData: FormData) {
   const session = await auth()
@@ -28,7 +27,7 @@ export async function createOrganization(formData: FormData) {
       users: {
         create: {
           userId: session.user.id,
-          role: OrganizationRole.OWNER,
+          role: 'OWNER',
         },
       },
     },
@@ -67,6 +66,29 @@ export async function getUserOrganizations() {
     console.error('Database error:', error)
     return []
   }
+}
+
+export async function deleteOrganization(organizationId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error('No autenticado')
+
+  const membership = await prisma.organizationUser.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: session.user.id,
+        organizationId,
+      },
+    },
+  })
+
+  if (!membership || membership.role !== 'OWNER') {
+    throw new Error('Solo el propietario puede eliminar la organización')
+  }
+
+  await prisma.organization.delete({ where: { id: organizationId } })
+
+  revalidatePath('/dashboard')
+  return { success: true }
 }
 
 export async function getOrganizationBySlug(slug: string) {

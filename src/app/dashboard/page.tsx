@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlusCircle, Trophy } from "lucide-react"
+import { OrganizationDeleteButton } from "./organization-delete-button"
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -82,9 +83,12 @@ export default async function DashboardPage() {
                   <p className="text-sm text-muted-foreground mb-4">
                     {org.tournamentCount} torneos · {org.teamCount} equipos
                   </p>
-                  <Button asChild className="w-full font-bold" size="sm">
-                    <Link href={`/org/${org.slug}`}>Ver organización →</Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button asChild className="flex-1 font-bold" size="sm">
+                      <Link href={`/org/${org.slug}`}>Ver organización →</Link>
+                    </Button>
+                    <OrganizationDeleteButton organizationId={org.id} />
+                  </div>
                 </CardContent>
               </Card>
             ))}

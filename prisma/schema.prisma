@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -26,12 +26,6 @@ model User {
 // ORGANIZACIONES
 // ============================================
 
-enum OrganizationRole {
-  OWNER
-  ADMIN
-  EDITOR
-}
-
 model Organization {
   id          String   @id @default(cuid())
   name        String
@@ -43,16 +37,20 @@ model Organization {
   users       OrganizationUser[]
   tournaments Tournament[]
   teams       Team[]
+  templates   TournamentTemplate[]
+  ruleOverrides OrganizationSportRule[]
+  people      Person[]
+  teamMembers TeamMember[]
 
   @@index([slug])
 }
 
 model OrganizationUser {
-  id             String           @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   organizationId String
-  role           OrganizationRole @default(EDITOR)
-  createdAt      DateTime         @default(now())
+  role           String   @default("EDITOR")
+  createdAt      DateTime @default(now())
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -66,43 +64,93 @@ model OrganizationUser {
 // TORNEOS
 // ============================================
 
-enum TournamentStatus {
-  DRAFT
-  UPCOMING
-  ACTIVE
-  FINISHED
-}
-
-enum TournamentType {
-  LEAGUE
-  KNOCKOUT
-  GROUP_STAGE
-}
-
 model Tournament {
-  id             String           @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   name           String
   description    String?
-  type           TournamentType   @default(LEAGUE)
-  status         TournamentStatus @default(DRAFT)
+  type           String   @default("LEAGUE")
+  sportSlug      String   @default("football")
+  formatSlug     String   @default("league")
+  participantMode String  @default("TEAM")
+  competitionMode String @default("LEAGUE")
+  status         String   @default("DRAFT")
   startDate      DateTime?
   endDate        DateTime?
 
   pointsForWin   Int @default(3)
   pointsForDraw  Int @default(1)
   pointsForLoss  Int @default(0)
+  pointsForBye   Int @default(0)
+
+  rulesConfig     String @default("{}")
+  scoringConfig   String @default("{}")
+  standingsConfig String @default("{}")
+  fixtureConfig   String @default("{}")
+  statisticsConfig String @default("{}")
+  uiConfig        String @default("{}")
+  customRules     String @default("{}")
+  presetSlug      String?
+  templateId      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     TournamentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   participants TournamentTeam[]
   matches      Match[]
   rounds       Round[]
 
   @@index([organizationId])
+  @@index([sportSlug])
+  @@index([formatSlug])
   @@index([status])
+}
+
+model TournamentTemplate {
+  id             String   @id @default(cuid())
+  organizationId String?
+  name           String
+  description    String?
+  sportSlug      String
+  formatSlug     String
+  participantMode String
+  rulesConfig     String @default("{}")
+  scoringConfig   String @default("{}")
+  standingsConfig String @default("{}")
+  fixtureConfig   String @default("{}")
+  statisticsConfig String @default("{}")
+  isSystem        Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tournaments  Tournament[]
+
+  @@index([organizationId])
+  @@index([sportSlug])
+  @@index([formatSlug])
+}
+
+model OrganizationSportRule {
+  id             String   @id @default(cuid())
+  organizationId String
+  sportSlug      String
+  formatSlug     String?
+  name           String
+  rulesConfig     String @default("{}")
+  scoringConfig   String @default("{}")
+  standingsConfig String @default("{}")
+  isDefault      Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([sportSlug])
+  @@unique([organizationId, sportSlug, formatSlug, name])
 }
 
 // ============================================
@@ -120,8 +168,14 @@ model Team {
 
   organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   tournaments  TournamentTeam[]
+  members      TeamMember[]
   homeMatches  Match[]          @relation("HomeTeam")
   awayMatches  Match[]          @relation("AwayTeam")
+  matchParticipants MatchParticipant[]
+  matchEvents  MatchEvent[]
+  playerStatistics PlayerStatistic[]
+  tournamentStatistics TournamentStatistic[]
+  seasonStatistics SeasonStatistic[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -142,16 +196,67 @@ model TournamentTeam {
 }
 
 // ============================================
-// PARTIDOS
+// PERSONAS, PLANTELES Y PARTICIPANTES
 // ============================================
 
-enum MatchStatus {
-  SCHEDULED
-  LIVE
-  FINISHED
-  POSTPONED
-  CANCELLED
+model Person {
+  id             String   @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String?
+  displayName    String
+  birthDate      DateTime?
+  nationality    String?
+  avatarUrl      String?
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  teamMemberships TeamMember[]
+  matchParticipants MatchParticipant[]
+  matchEvents MatchEvent[] @relation("EventPerson")
+  relatedMatchEvents MatchEvent[] @relation("RelatedEventPerson")
+  playerStatistics PlayerStatistic[]
+  tournamentStatistics TournamentStatistic[]
+  seasonStatistics SeasonStatistic[]
+
+  @@index([organizationId])
+  @@index([displayName])
 }
+
+model TeamMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  teamId         String?
+  personId       String
+  sportSlug      String
+  memberType     String   @default("PLAYER")
+  positionSlug   String?
+  roleSlug       String?
+  jerseyNumber   String?
+  status         String   @default("ACTIVE")
+  joinedAt       DateTime @default(now())
+  leftAt         DateTime?
+  metadata       String   @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  person       Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([teamId])
+  @@index([personId])
+  @@index([sportSlug])
+  @@index([memberType])
+  @@unique([teamId, personId, sportSlug, memberType])
+}
+
+// ============================================
+// PARTIDOS
+// ============================================
 
 model Round {
   id           String    @id @default(cuid())
@@ -182,7 +287,7 @@ model Match {
   homeScore Int?
   awayScore Int?
 
-  status MatchStatus @default(SCHEDULED)
+  status String @default("SCHEDULED")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -191,10 +296,156 @@ model Match {
   round      Round?     @relation(fields: [roundId], references: [id], onDelete: SetNull)
   homeTeam   Team       @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
   awayTeam   Team       @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  participants MatchParticipant[]
+  events     MatchEvent[]
+  playerStatistics PlayerStatistic[]
 
   @@index([tournamentId])
   @@index([roundId])
   @@index([homeTeamId])
   @@index([awayTeamId])
   @@index([status])
+}
+
+model MatchParticipant {
+  id        String   @id @default(cuid())
+  matchId   String
+  teamId    String?
+  personId  String?
+  side      String?
+  role      String   @default("PLAYER")
+  started   Boolean  @default(false)
+  minutesPlayed Int?
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  match  Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([matchId])
+  @@index([teamId])
+  @@index([personId])
+}
+
+model MatchEvent {
+  id              String   @id @default(cuid())
+  matchId          String
+  tournamentId     String
+  sportSlug        String
+  eventSlug        String
+  teamId           String?
+  personId         String?
+  relatedPersonId  String?
+  opponentTeamId   String?
+  minute           Int?
+  period           String?
+  value            Float   @default(1)
+  metadata         String  @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  match         Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team          Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  person        Person? @relation("EventPerson", fields: [personId], references: [id], onDelete: SetNull)
+  relatedPerson Person? @relation("RelatedEventPerson", fields: [relatedPersonId], references: [id], onDelete: SetNull)
+
+  @@index([matchId])
+  @@index([tournamentId])
+  @@index([sportSlug])
+  @@index([eventSlug])
+  @@index([teamId])
+  @@index([personId])
+}
+
+model PlayerStatistic {
+  id           String   @id @default(cuid())
+  personId     String
+  teamId       String?
+  tournamentId String?
+  matchId      String?
+  sportSlug    String
+  statSlug     String
+  scope        String   @default("MATCH")
+  value        Float    @default(0)
+  metadata     String   @default("{}")
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  match  Match? @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([teamId])
+  @@index([tournamentId])
+  @@index([matchId])
+  @@index([sportSlug])
+  @@index([statSlug])
+  @@unique([personId, teamId, tournamentId, matchId, sportSlug, statSlug, scope])
+}
+
+model TournamentStatistic {
+  id           String   @id @default(cuid())
+  tournamentId String
+  teamId       String?
+  personId     String?
+  sportSlug    String
+  statSlug     String
+  value        Float    @default(0)
+  metadata     String   @default("{}")
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([personId])
+  @@index([sportSlug])
+  @@index([statSlug])
+  @@unique([tournamentId, teamId, personId, sportSlug, statSlug])
+}
+
+model SeasonStatistic {
+  id             String   @id @default(cuid())
+  organizationId String
+  seasonSlug      String
+  teamId         String?
+  personId       String?
+  sportSlug      String
+  statSlug       String
+  value          Float    @default(0)
+  metadata       String   @default("{}")
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([seasonSlug])
+  @@index([teamId])
+  @@index([personId])
+  @@index([sportSlug])
+  @@index([statSlug])
+  @@unique([organizationId, seasonSlug, teamId, personId, sportSlug, statSlug])
+}
+
+model LeaderboardSnapshot {
+  id             String   @id @default(cuid())
+  organizationId String
+  tournamentId   String?
+  sportSlug      String
+  leaderboardSlug String
+  scope          String   @default("TOURNAMENT")
+  rows           String   @default("[]")
+  generatedAt    DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([tournamentId])
+  @@index([sportSlug])
+  @@index([leaderboardSlug])
 }

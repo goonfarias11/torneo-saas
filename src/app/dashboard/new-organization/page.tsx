@@ -20,21 +20,21 @@ export default async function NewOrganizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/dashboard" className="text-sm text-blue-600 hover:underline mb-2 block">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/40 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-6">
+          <Link href="/dashboard" className="text-sm text-accent hover:underline mb-2 block font-bold">
             ← Volver al Dashboard
           </Link>
-          <h1 className="text-3xl font-bold">Nueva Organización</h1>
+          <h1 className="text-4xl font-black tracking-tight">Nueva Organización</h1>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-lg">
-        <Card>
+      <main className="container mx-auto px-6 py-10 max-w-2xl">
+        <Card className="bg-card/80 border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle>Crear organización</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl font-black tracking-tight">Crear organización</CardTitle>
+            <CardDescription className="text-base text-muted-foreground">
               Una organización agrupa tus torneos y equipos. Podés tener una por liga, club o competencia.
             </CardDescription>
           </CardHeader>
@@ -60,7 +60,7 @@ export default async function NewOrganizationPage() {
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="submit" className="flex-1">Crear Organización</Button>
+                <Button type="submit" className="flex-1 font-bold">Crear Organización</Button>
                 <Button variant="outline" asChild>
                   <Link href="/dashboard">Cancelar</Link>
                 </Button>

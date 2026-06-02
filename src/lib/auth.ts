@@ -8,6 +8,8 @@ import prisma from "@/lib/prisma"
  * donde podemos devolver errores tipados sin depender de NextAuth.
  */
 const authConfig = {
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'torneo-saas-dev-secret',
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {

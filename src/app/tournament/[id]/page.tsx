@@ -1,17 +1,19 @@
-import { getTournamentById, updateTournamentStatus, deleteTournament } from "@/actions/tournament"
+import { getTournamentById } from "@/actions/tournament"
 import { getTeamsByOrganization } from "@/actions/team"
-import { generateFixtures, getMatchesByTournament } from "@/actions/match"
+import { getMatchesByTournament } from "@/actions/match"
 import { calculateStandings } from "@/actions/standings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { TournamentStatus } from "@prisma/client"
 import { FixtureGenerator } from "./components/fixture-generator"
 import { MatchResultForm } from "./components/match-result-form"
+import { MatchEventRecorder } from "./components/match-event-recorder"
 import { TeamSelector, RemoveTeamButton } from "./components/team-selector"
+import { TeamRosterManager } from "./components/team-roster-manager"
 import { TournamentStatusControl } from "./components/tournament-status"
+import { getFormatBySlug, getSportBySlug } from "@/features/sports/catalog"
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   DRAFT: { label: 'Borrador', color: 'text-yellow-600 bg-yellow-100' },
@@ -23,29 +25,32 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default async function TournamentPage({ params }: { params: { id: string } }) {
   try {
     const tournament = await getTournamentById(params.id)
-    const allTeams = await getTeamsByOrganization(tournament.organizationId)
-    const matches = await getMatchesByTournament(params.id)
-    const standings = await calculateStandings(params.id)
+    const [allTeams, matches, standings] = await Promise.all([
+      getTeamsByOrganization(tournament.organizationId),
+      getMatchesByTournament(params.id),
+      calculateStandings(params.id),
+    ])
 
     const participantTeamIds = new Set(tournament.participants.map(p => p.teamId))
     const availableTeams = allTeams.filter(t => !participantTeamIds.has(t.id))
     const isDraft = tournament.status === 'DRAFT'
-    const isFinished = tournament.status === 'FINISHED'
     const statusInfo = STATUS_LABELS[tournament.status] ?? { label: tournament.status, color: '' }
 
     const totalMatches = matches.length
     const playedMatches = matches.filter(m => m.status === 'FINISHED').length
+    const sport = getSportBySlug(tournament.sportSlug)
+    const format = getFormatBySlug(tournament.formatSlug)
 
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <Link href={`/org/${tournament.organization.slug}`} className="text-sm text-blue-600 hover:underline mb-2 block">
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border/40 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-6 py-6">
+            <Link href={`/org/${tournament.organization.slug}`} className="text-sm text-accent hover:underline mb-2 block font-bold">
               ← Volver a {tournament.organization.name}
             </Link>
             <div className="flex flex-wrap justify-between items-start gap-4">
               <div>
-                <h1 className="text-3xl font-bold">{tournament.name}</h1>
+                <h1 className="text-4xl font-black tracking-tight">{tournament.name}</h1>
                 {tournament.description && (
                   <p className="text-muted-foreground mt-1">{tournament.description}</p>
                 )}
@@ -64,7 +69,7 @@ export default async function TournamentPage({ params }: { params: { id: string 
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-6 py-10">
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Columna principal */}
             <div className="lg:col-span-2 space-y-8">
@@ -72,7 +77,7 @@ export default async function TournamentPage({ params }: { params: { id: string 
               {/* Tabla de Posiciones */}
               <section>
                 <h2 className="text-2xl font-bold mb-4">Tabla de Posiciones</h2>
-                <Card>
+                <Card className="bg-card/80 border-border/50 shadow-xl">
                   <CardContent className="p-0">
                     <Table>
                       <TableHeader>
@@ -137,7 +142,7 @@ export default async function TournamentPage({ params }: { params: { id: string 
                 </div>
 
                 {tournament.rounds.length === 0 ? (
-                  <Card>
+                  <Card className="bg-card/80 border-border/50 shadow-xl">
                     <CardHeader>
                       <CardTitle>No hay fixture generado</CardTitle>
                       <CardDescription>
@@ -157,7 +162,7 @@ export default async function TournamentPage({ params }: { params: { id: string 
                       const roundDone = roundPlayed === roundMatches.length
 
                       return (
-                        <Card key={round.id} className={roundDone ? 'opacity-75' : ''}>
+                        <Card key={round.id} className={roundDone ? 'opacity-75 bg-card/80 border-border/50 shadow-xl' : 'bg-card/80 border-border/50 shadow-xl'}>
                           <CardHeader className="pb-2">
                             <div className="flex justify-between items-center">
                               <CardTitle className="text-base">
@@ -173,26 +178,48 @@ export default async function TournamentPage({ params }: { params: { id: string 
                               const isMatchFinished = match.status === 'FINISHED'
                               const homeWon = isMatchFinished && match.homeScore! > match.awayScore!
                               const awayWon = isMatchFinished && match.awayScore! > match.homeScore!
+                              const homeParticipant = tournament.participants.find((participant) => participant.teamId === match.homeTeamId)
+                              const awayParticipant = tournament.participants.find((participant) => participant.teamId === match.awayTeamId)
 
                               return (
-                                <div key={match.id} className="flex items-center justify-between p-3 bg-muted rounded-lg gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className={`font-medium truncate ${homeWon ? 'font-bold' : ''}`}>
-                                      {match.homeTeam.name}
+                                <div key={match.id} className="p-3 bg-muted rounded-lg">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className={`font-medium truncate ${homeWon ? 'font-bold' : ''}`}>
+                                        {match.homeTeam.name}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">vs</div>
+                                      <div className={`font-medium truncate ${awayWon ? 'font-bold' : ''}`}>
+                                        {match.awayTeam.name}
+                                      </div>
                                     </div>
-                                    <div className="text-xs text-muted-foreground">vs</div>
-                                    <div className={`font-medium truncate ${awayWon ? 'font-bold' : ''}`}>
-                                      {match.awayTeam.name}
+                                    <div className="flex-shrink-0">
+                                      <MatchResultForm
+                                        matchId={match.id}
+                                        currentHomeScore={match.homeScore}
+                                        currentAwayScore={match.awayScore}
+                                        isFinished={isMatchFinished}
+                                      />
                                     </div>
                                   </div>
-                                  <div className="flex-shrink-0">
-                                    <MatchResultForm
+
+                                  {homeParticipant && awayParticipant && (
+                                    <MatchEventRecorder
                                       matchId={match.id}
-                                      currentHomeScore={match.homeScore}
-                                      currentAwayScore={match.awayScore}
-                                      isFinished={isMatchFinished}
+                                      sportSlug={tournament.sportSlug}
+                                      homeTeam={{
+                                        id: homeParticipant.team.id,
+                                        name: homeParticipant.team.name,
+                                        members: homeParticipant.team.members,
+                                      }}
+                                      awayTeam={{
+                                        id: awayParticipant.team.id,
+                                        name: awayParticipant.team.name,
+                                        members: awayParticipant.team.members,
+                                      }}
+                                      events={match.events}
                                     />
-                                  </div>
+                                  )}
                                 </div>
                               )
                             })}
@@ -216,7 +243,7 @@ export default async function TournamentPage({ params }: { params: { id: string 
               />
 
               {/* Equipos participantes */}
-              <Card>
+              <Card className="bg-card/80 border-border/50 shadow-xl">
                 <CardHeader>
                   <CardTitle>Equipos Participantes</CardTitle>
                   <CardDescription>{tournament.participants.length} equipos inscritos</CardDescription>
@@ -227,18 +254,26 @@ export default async function TournamentPage({ params }: { params: { id: string 
                   ) : (
                     tournament.participants.map((p) => (
                       <div key={p.id} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
-                        <span className="flex-1 font-medium">{p.team.name}</span>
-                        {isDraft && (
-                          <RemoveTeamButton
-                            tournamentId={params.id}
-                            teamId={p.teamId}
-                            teamName={p.team.name}
-                          />
-                        )}
+                        <div className="flex-1">
+                          {isDraft && (
+                            <RemoveTeamButton
+                              tournamentId={params.id}
+                              teamId={p.teamId}
+                              teamName={p.team.name}
+                            />
+                          )}
+                        </div>
+                        <TeamRosterManager
+                          tournamentId={params.id}
+                          teamId={p.teamId}
+                          teamName={p.team.name}
+                          sportSlug={tournament.sportSlug}
+                          members={p.team.members}
+                        />
                       </div>
                     ))
                   )}
-                  {isDraft && availableTeams.length > 0 && (
+                  {isDraft && (
                     <TeamSelector
                       tournamentId={params.id}
                       availableTeams={availableTeams}
@@ -261,14 +296,18 @@ export default async function TournamentPage({ params }: { params: { id: string 
               )}
 
               {/* Información del torneo */}
-              <Card>
+              <Card className="bg-card/80 border-border/50 shadow-xl">
                 <CardHeader>
                   <CardTitle>Configuración</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tipo</span>
-                    <span className="font-medium">{tournament.type === 'LEAGUE' ? 'Liga (Round-robin)' : tournament.type}</span>
+                    <span className="font-medium">{format?.name ?? tournament.type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deporte</span>
+                    <span className="font-medium">{sport?.name ?? tournament.sportSlug}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Victoria</span>

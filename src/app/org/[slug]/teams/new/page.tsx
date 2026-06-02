@@ -19,20 +19,21 @@ export default async function NewTeamPage({ params }: { params: { slug: string }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link href={`/org/${params.slug}`} className="text-blue-600 hover:underline">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/40 backdrop-blur-sm">
+        <div className="container mx-auto px-6 py-6">
+          <Link href={`/org/${params.slug}`} className="text-sm text-accent hover:underline mb-2 block font-bold">
             ← Volver a {org.name}
           </Link>
+          <h1 className="text-4xl font-black tracking-tight">Nuevo Equipo</h1>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card>
+      <main className="container mx-auto px-6 py-10 max-w-2xl">
+        <Card className="bg-card/80 border-border/50 shadow-xl">
           <CardHeader>
-            <CardTitle>Nuevo Equipo</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl font-black tracking-tight">Nuevo Equipo</CardTitle>
+            <CardDescription className="text-base text-muted-foreground">
               Crea un equipo para {org.name}
             </CardDescription>
           </CardHeader>
@@ -69,7 +70,7 @@ export default async function NewTeamPage({ params }: { params: { slug: string }
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1">
+                <Button type="submit" className="flex-1 font-bold">
                   Crear Equipo
                 </Button>
                 <Button type="button" variant="outline" asChild>
