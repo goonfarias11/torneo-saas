@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { AVAILABLE_FEATURES, PLANS } from "@/features/billing/plans";
+
+const pricingPlans = Object.values(PLANS);
 
 export default function HomePage() {
   return (
@@ -121,6 +124,80 @@ export default function HomePage() {
                 </div>
               </div>
             </Card>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="plans" className="container mx-auto px-6 py-20">
+          <div className="mb-12 text-center">
+            <p className="text-sm uppercase tracking-[0.3em] text-accent font-bold mb-3">Planes</p>
+            <h3 className="text-4xl md:text-5xl font-black tracking-tight">Tarifas en pesos para ligas con presupuesto ajustado</h3>
+            <p className="max-w-2xl mx-auto text-foreground/70 mt-4 text-lg">
+              Desde gestión gratuita hasta planes profesionales pensados para muchas páginas de torneos y costos accesibles.
+            </p>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            {pricingPlans.map((plan) => (
+              <Card key={plan.slug} className="p-8 border border-border/50 bg-card/80 hover:border-accent/50 transition-all">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="text-2xl font-black tracking-tight">{plan.name}</h4>
+                    <p className="text-sm text-foreground/70 mt-2">{plan.description}</p>
+                  </div>
+                  {plan.isFree ? (
+                    <span className="rounded-full bg-accent/10 text-accent text-xs px-3 py-1 font-semibold uppercase tracking-[0.25em]">Gratis</span>
+                  ) : plan.isEnterprise ? (
+                    <span className="rounded-full bg-primary/10 text-primary text-xs px-3 py-1 font-semibold uppercase tracking-[0.25em]">Enterprise</span>
+                  ) : (
+                    <span className="rounded-full bg-secondary/10 text-secondary text-xs px-3 py-1 font-semibold uppercase tracking-[0.25em]">Popular</span>
+                  )}
+                </div>
+
+                <div className="mb-8">
+                  <p className="text-5xl font-black tracking-tight">
+                    {plan.isFree ? 'Gratis' : `ARS $${plan.priceMonthly}`}
+                    <span className="text-lg font-medium text-foreground/70">/mes</span>
+                  </p>
+                </div>
+
+                <div className="grid gap-3 mb-8 text-sm text-foreground/70">
+                  <div className="flex justify-between border-b border-border/50 pb-3">
+                    <span>Torneos</span>
+                    <span>{plan.limits.activeTournaments === -1 ? 'Ilimitados' : plan.limits.activeTournaments}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-3">
+                    <span>Equipos</span>
+                    <span>{plan.limits.teams === -1 ? 'Ilimitados' : plan.limits.teams}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-3">
+                    <span>Jugadores</span>
+                    <span>{plan.limits.players === -1 ? 'Ilimitados' : plan.limits.players}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/50 pb-3">
+                    <span>Usuarios</span>
+                    <span>{plan.limits.users === -1 ? 'Ilimitados' : plan.limits.users}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Precio anual</span>
+                    <span>{plan.isFree ? 'Gratis' : `ARS $${plan.priceAnnual}`}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-8 text-sm text-foreground/70">
+                  {plan.features.slice(0, 4).map((feature) => (
+                    <p key={feature} className="flex items-center gap-3">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent">✓</span>
+                      {AVAILABLE_FEATURES[feature] ?? feature.toLowerCase().replace(/_/g, ' ')}
+                    </p>
+                  ))}
+                </div>
+
+                <Button size="lg" asChild className="w-full font-bold">
+                  <Link href="/auth/signin">Seleccionar</Link>
+                </Button>
+              </Card>
+            ))}
           </div>
         </section>
       </main>

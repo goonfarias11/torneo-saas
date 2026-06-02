@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { SPORTS } from '../src/features/sports/catalog'
 import { validateTournamentConfiguration } from '../src/features/sports/rules-engine'
+import { PLANS, AVAILABLE_FEATURES } from '../src/features/billing/plans'
+import { FeatureKey } from '../src/features/billing/types'
 
 const prisma = new PrismaClient()
 
@@ -37,6 +39,177 @@ async function main() {
   })
 
   console.log('✅ Organización creada:', org.name)
+
+  await seedBillingData(org.id, org.name, user.email)
+
+  async function seedBillingData(organizationId: string, organizationName: string, ownerEmail: string) {
+    for (const plan of Object.values(PLANS)) {
+      await prisma.subscriptionPlan.upsert({
+        where: { slug: plan.slug },
+        update: {
+          name: plan.name,
+          description: plan.description,
+          currency: 'ARS',
+          interval: 'MONTHLY',
+          amount: plan.priceMonthly,
+          isFree: plan.isFree,
+          isEnterprise: plan.isEnterprise,
+          features: JSON.stringify(plan.features),
+          limits: JSON.stringify(plan.limits),
+        },
+        create: {
+          slug: plan.slug,
+          name: plan.name,
+          description: plan.description,
+          currency: 'ARS',
+          interval: 'MONTHLY',
+          amount: plan.priceMonthly,
+          isFree: plan.isFree,
+          isEnterprise: plan.isEnterprise,
+          features: JSON.stringify(plan.features),
+          limits: JSON.stringify(plan.limits),
+        },
+      })
+    }
+
+    for (const [key, label] of Object.entries(AVAILABLE_FEATURES)) {
+      await prisma.feature.upsert({
+        where: { key },
+        update: {
+          name: label,
+          description: `Habilita ${label} en tu cuenta`,
+          isPremium: false,
+          isEnterprise: false,
+        },
+        create: {
+          key,
+          name: label,
+          description: `Habilita ${label} en tu cuenta`,
+          isPremium: false,
+          isEnterprise: false,
+        },
+      })
+    }
+
+    const addons = [
+      {
+        slug: 'PREMIUM_STATS',
+        name: 'Estadísticas Premium',
+        description: 'Añade estadísticas avanzadas y paneles de rendimiento mejorados.',
+        amount: 649,
+        interval: 'MONTHLY',
+        features: JSON.stringify([FeatureKey.ADVANCED_STATS]),
+      },
+      {
+        slug: 'CUSTOM_DOMAIN',
+        name: 'Dominio personalizado',
+        description: 'Permite conectar un dominio propio a tu liga.',
+        amount: 899,
+        interval: 'MONTHLY',
+        features: JSON.stringify([FeatureKey.CUSTOM_DOMAIN]),
+      },
+      {
+        slug: 'WHITE_LABEL',
+        name: 'White label',
+        description: 'Elimina la marca TORNEO y personaliza el branding.',
+        amount: 1290,
+        interval: 'MONTHLY',
+        features: JSON.stringify([FeatureKey.WHITE_LABEL]),
+      },
+      {
+        slug: 'API_ADVANCED',
+        name: 'API avanzada',
+        description: 'Acceso extendido a la API y límites de llamadas superiores.',
+        amount: 799,
+        interval: 'MONTHLY',
+        features: JSON.stringify([FeatureKey.API_ACCESS]),
+      },
+    ]
+
+    for (const addon of addons) {
+      await prisma.addon.upsert({
+        where: { slug: addon.slug },
+        update: {
+          name: addon.name,
+          description: addon.description,
+          amount: addon.amount,
+          interval: addon.interval,
+          features: addon.features,
+        },
+        create: {
+          slug: addon.slug,
+          name: addon.name,
+          description: addon.description,
+          amount: addon.amount,
+          currency: 'ARS',
+          interval: addon.interval,
+          features: addon.features,
+        },
+      })
+    }
+
+    const freePlan = await prisma.subscriptionPlan.findUnique({ where: { slug: 'free' } })
+    if (freePlan) {
+      let subscription = await prisma.subscription.findFirst({
+        where: { providerSubscriptionId: `STRIPE-${organizationId}-free-demo` },
+      })
+
+      if (!subscription) {
+        subscription = await prisma.subscription.create({
+          data: {
+            organizationId,
+            planId: freePlan.id,
+            status: 'ACTIVE',
+            provider: 'STRIPE',
+            providerSubscriptionId: `STRIPE-${organizationId}-free-demo`,
+            interval: 'MONTHLY',
+            amount: freePlan.amount,
+            currency: 'ARS',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 86400000),
+          },
+        })
+      } else {
+        subscription = await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: {
+            status: 'ACTIVE',
+            interval: 'MONTHLY',
+            amount: freePlan.amount,
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 86400000),
+          },
+        })
+      }
+
+      await prisma.organizationSubscription.upsert({
+        where: { organizationId_subscriptionId: { organizationId, subscriptionId: subscription.id } },
+        update: { isPrimary: true },
+        create: {
+          organizationId,
+          subscriptionId: subscription.id,
+          isPrimary: true,
+        },
+      })
+    }
+
+    await prisma.billingCustomer.upsert({
+      where: { organizationId },
+      update: {
+        provider: 'STRIPE',
+        providerCustomerId: `STRIPE-${organizationId}`,
+        email: ownerEmail,
+        name: organizationName,
+      },
+      create: {
+        organizationId,
+        provider: 'STRIPE',
+        providerCustomerId: `STRIPE-${organizationId}`,
+        email: ownerEmail,
+        name: organizationName,
+      },
+    })
+  }
 
   // Crear equipos
   const teamNames = [
