@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from "react"
+import Link from "next/link"
 import { loginOrRegister } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,9 +40,9 @@ export default function SignInPage() {
       <div className="w-full max-w-sm space-y-6">
 
         <div className="text-center">
-          <h1 className="text-5xl font-black tracking-tight">
+          <Link href="/" className="inline-block text-5xl font-black tracking-tight text-foreground hover:text-accent">
             TORNEO<span className="text-accent">.</span>
-          </h1>
+          </Link>
           <p className="text-muted-foreground text-sm mt-2">Gestión de torneos deportivos</p>
         </div>
 

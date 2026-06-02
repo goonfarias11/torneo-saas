@@ -20,9 +20,9 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/40">
         <div className="container mx-auto px-6 py-5 flex justify-between items-center">
-          <h1 className="text-2xl font-black tracking-tight">
+          <Link href="/" className="text-2xl font-black tracking-tight text-foreground hover:text-accent">
             TORNEO<span className="text-accent">.</span>
-          </h1>
+          </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{session.user.email}</span>
             <form action={async () => {
