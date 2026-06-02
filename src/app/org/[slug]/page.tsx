@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link"
 import { PlusCircle, Trophy, Users } from "lucide-react"
 import { notFound } from "next/navigation"
+import { TournamentDeleteButton } from "./components/tournament-delete-button"
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   DRAFT:    { label: 'Borrador',     color: 'text-yellow-700 bg-yellow-100' },
@@ -184,9 +185,12 @@ function TournamentCard({ tournament }: { tournament: any }) {
         <p className="text-sm text-muted-foreground mb-3">
           {tournament._count.participants} equipos · {tournament._count.matches} partidos
         </p>
-        <Button asChild className="w-full font-bold" size="sm">
-          <Link href={`/tournament/${tournament.id}`}>Ver torneo →</Link>
-        </Button>
+        <div className="grid gap-2">
+          <Button asChild className="w-full font-bold" size="sm">
+            <Link href={`/tournament/${tournament.id}`}>Ver torneo →</Link>
+          </Button>
+          <TournamentDeleteButton tournamentId={tournament.id} />
+        </div>
       </CardContent>
     </Card>
   )
