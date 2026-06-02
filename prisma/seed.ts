@@ -118,28 +118,32 @@ async function main() {
 
   for (const sport of SPORTS) {
     for (const preset of sport.presets) {
-      const configuration = validateTournamentConfiguration({
-        sportSlug: sport.slug,
-        formatSlug: preset.formatSlug,
-        presetSlug: preset.slug,
-        rules: preset.rules,
-      })
-
-      await prisma.tournamentTemplate.create({
-        data: {
-          name: preset.name,
-          description: `${sport.name} - ${configuration.format.name}`,
+      try {
+        const configuration = validateTournamentConfiguration({
           sportSlug: sport.slug,
           formatSlug: preset.formatSlug,
-          participantMode: sport.type[0].toUpperCase(),
-          rulesConfig: JSON.stringify(configuration.rulesConfig),
-          scoringConfig: JSON.stringify(configuration.scoringConfig),
-          standingsConfig: JSON.stringify(configuration.standingsConfig),
-          fixtureConfig: JSON.stringify(configuration.fixtureConfig),
-          statisticsConfig: JSON.stringify(configuration.statisticsConfig),
-          isSystem: true,
-        },
-      })
+          presetSlug: preset.slug,
+          rules: preset.rules,
+        })
+
+        await prisma.tournamentTemplate.create({
+          data: {
+            name: preset.name,
+            description: `${sport.name} - ${configuration.format.name}`,
+            sportSlug: sport.slug,
+            formatSlug: preset.formatSlug,
+            participantMode: sport.type[0].toUpperCase(),
+            rulesConfig: JSON.stringify(configuration.rulesConfig),
+            scoringConfig: JSON.stringify(configuration.scoringConfig),
+            standingsConfig: JSON.stringify(configuration.standingsConfig),
+            fixtureConfig: JSON.stringify(configuration.fixtureConfig),
+            statisticsConfig: JSON.stringify(configuration.statisticsConfig),
+            isSystem: true,
+          },
+        })
+      } catch (error) {
+        console.warn(`⚠️ Omitiendo plantilla ${preset.name} de ${sport.name}:`, error instanceof Error ? error.message : error)
+      }
     }
   }
 
